@@ -12,16 +12,18 @@ from aiohttp import hdrs, web
 from aiohttp_sse import sse_response
 from brewblox_service import brewblox_logger, events, features, repeater, strex
 from pytimeparse import parse
-from schema import Optional, Schema
+from schema import Optional, Or, Schema
 
 PUBLISH_TIMEOUT_S = 5
 DEFAULT_DURATION = '60s'
 CLEANUP_INTERVAL_S = 10
+PUBLISHED_KEYS = ['key', 'type', 'data']
 
 _message_schema = Schema({
     'key': str,
+    'type': str,
     'duration': Optional(lambda s: parse(s) is not None),
-    'data': dict,
+    'data': Or(dict, list),
 })
 
 LOGGER = brewblox_logger(__name__)
@@ -48,6 +50,10 @@ def _cors_headers(request):
     }
 
 
+def _pick(obj: dict) -> dict:
+    return {k: obj[k] for k in PUBLISHED_KEYS}
+
+
 class EventRelay(repeater.RepeaterFeature):
 
     def __init__(self, app: web.Application):
@@ -60,8 +66,9 @@ class EventRelay(repeater.RepeaterFeature):
 
     async def prepare(self):
         events.get_listener(self.app).subscribe(
-            exchange_name=self.app['config']['broadcast_exchange'],
-            routing='#')
+            exchange_name=self.app['config']['state_exchange'],
+            routing='#',
+            on_message=self._on_event_message)
 
     async def before_shutdown(self, _):
         for queue in self._queues:
@@ -83,7 +90,7 @@ class EventRelay(repeater.RepeaterFeature):
             self.cleanup()
             LOGGER.info(f'Added queue, setting messages: {self._messages.keys()}')
             for message in self._messages.values():
-                await queue.put({message['key']: message['data']})
+                await queue.put(_pick(message))
 
         except asyncio.CancelledError:  # pragma: no cover
             raise
@@ -95,18 +102,17 @@ class EventRelay(repeater.RepeaterFeature):
     async def _on_event_message(self,
                                 subscription: events.EventSubscription,
                                 routing: str,
-                                message: dict):
+                                content: dict):
 
-        _message_schema.validate(message)
+        message = _message_schema.validate(content)
 
         duration = parse(message.get('duration', DEFAULT_DURATION))
         message['expires'] = time() + duration
 
         key = message['key']
-        data = message['data']
         self._messages[key] = message
 
-        coros = [q.put({key: data}) for q in self._queues]
+        coros = [q.put(_pick(message)) for q in self._queues]
         await asyncio.wait_for(asyncio.gather(*coros, return_exceptions=True), PUBLISH_TIMEOUT_S)
 
 

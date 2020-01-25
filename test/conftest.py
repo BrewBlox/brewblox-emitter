@@ -27,7 +27,7 @@ def app_config() -> dict:
         'host': 'localhost',
         'port': 1234,
         'debug': False,
-        'broadcast_exchange': 'brewcast_test',
+        'state_exchange': 'brewcast.state',
     }
 
 
@@ -38,7 +38,7 @@ def sys_args(app_config) -> list:
         '--name', app_config['name'],
         '--host', app_config['host'],
         '--port', app_config['port'],
-        '--broadcast-exchange', app_config['broadcast_exchange'],
+        '--state-exchange', app_config['state_exchange'],
     ]]
 
 
