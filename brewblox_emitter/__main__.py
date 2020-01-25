@@ -14,9 +14,9 @@ LOGGER = brewblox_logger(__name__)
 def create_parser(default_name='emitter') -> ArgumentParser:
     parser: ArgumentParser = service.create_parser(default_name=default_name)
 
-    parser.add_argument('--broadcast-exchange',
+    parser.add_argument('--state-exchange',
                         help='Eventbus exchange to which device services broadcast their state. [%(default)s]',
-                        default='brewcast_latest')
+                        default='brewcast.state')
 
     return parser
 
