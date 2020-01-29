@@ -12,17 +12,16 @@ from aiohttp import hdrs, web
 from aiohttp_sse import sse_response
 from brewblox_service import brewblox_logger, events, features, repeater, strex
 from pytimeparse import parse
-from schema import Optional, Or, Schema
+from schema import Or, Schema
 
 PUBLISH_TIMEOUT_S = 5
-DEFAULT_DURATION = '60s'
 CLEANUP_INTERVAL_S = 10
 PUBLISHED_KEYS = ['key', 'type', 'data']
 
 _message_schema = Schema({
     'key': str,
     'type': str,
-    'duration': Optional(lambda s: parse(s) is not None),
+    'duration': lambda s: parse(s) is not None,
     'data': Or(dict, list),
 })
 
@@ -106,7 +105,7 @@ class EventRelay(repeater.RepeaterFeature):
 
         message = _message_schema.validate(content)
 
-        duration = parse(message.get('duration', DEFAULT_DURATION))
+        duration = parse(message['duration'])
         message['expires'] = time() + duration
 
         key = message['key']
