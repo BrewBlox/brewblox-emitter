@@ -133,7 +133,7 @@ async def subscribe(request: web.Request) -> web.Response:
 
         while True:
             data = await queue.get()
-            if isinstance(data, Exception):
+            if isinstance(data, (Exception, asyncio.CancelledError)):
                 raise data
             await resp.send(json.dumps(data))
 
