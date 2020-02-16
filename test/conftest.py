@@ -7,9 +7,9 @@ Any fixtures declared here are available to all test functions in this directory
 import logging
 
 import pytest
-from brewblox_service import service
 
 from brewblox_emitter.__main__ import create_parser
+from brewblox_service import service
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -43,6 +43,13 @@ def sys_args(app_config) -> list:
 
 
 @pytest.fixture
+def event_loop(loop):
+    # aresponses uses the "event_loop" fixture
+    # this makes loop available under either name
+    yield loop
+
+
+@pytest.fixture
 def app(sys_args):
     parser = create_parser('default')
     app = service.create_app(parser=parser, raw_args=sys_args[1:])
@@ -50,9 +57,9 @@ def app(sys_args):
 
 
 @pytest.fixture
-def client(app, aiohttp_client, loop):
+async def client(app, aiohttp_client, loop):
     """Allows patching the app or aiohttp_client before yielding it.
 
     Any tests wishing to add custom behavior to app can override the fixture
     """
-    return loop.run_until_complete(aiohttp_client(app))
+    return await aiohttp_client(app)
