@@ -10,9 +10,10 @@ from typing import Set
 
 from aiohttp import hdrs, web
 from aiohttp_sse import sse_response
-from brewblox_service import brewblox_logger, events, features, repeater, strex
 from pytimeparse import parse
 from schema import Or, Schema
+
+from brewblox_service import brewblox_logger, events, features, repeater, strex
 
 PUBLISH_TIMEOUT_S = 5
 CLEANUP_INTERVAL_S = 10
@@ -27,15 +28,6 @@ _message_schema = Schema({
 
 LOGGER = brewblox_logger(__name__)
 routes = web.RouteTableDef()
-
-
-def setup(app: web.Application):
-    app.router.add_routes(routes)
-    features.add(app, EventRelay(app))
-
-
-def get_relay(app: web.Application):
-    return features.get(app, EventRelay)
 
 
 def _cors_headers(request):
@@ -64,10 +56,10 @@ class EventRelay(repeater.RepeaterFeature):
         return f'<{type(self).__name__} ({len(self._queues)} listeners)>'
 
     async def prepare(self):
-        events.get_listener(self.app).subscribe(
-            exchange_name=self.app['config']['state_exchange'],
-            routing='#',
-            on_message=self._on_event_message)
+        events.subscribe(self.app,
+                         exchange_name=self.app['config']['state_exchange'],
+                         routing='#',
+                         on_message=self._on_event_message)
 
     async def before_shutdown(self, _):
         for queue in self._queues:
@@ -113,6 +105,15 @@ class EventRelay(repeater.RepeaterFeature):
 
         coros = [q.put(_pick(message)) for q in self._queues]
         await asyncio.wait_for(asyncio.gather(*coros, return_exceptions=True), PUBLISH_TIMEOUT_S)
+
+
+def setup(app: web.Application):
+    app.router.add_routes(routes)
+    features.add(app, EventRelay(app))
+
+
+def get_relay(app: web.Application) -> EventRelay:
+    return features.get(app, EventRelay)
 
 
 @routes.get('/sse')

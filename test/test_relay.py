@@ -7,21 +7,21 @@ import json
 
 import pytest
 from aiohttp.client_exceptions import ClientPayloadError
-from brewblox_service import scheduler
 
 from brewblox_emitter import relay
+from brewblox_service import scheduler
 
 TESTED = relay.__name__
 
 
 @pytest.fixture
-def listener_mock(mocker):
-    call_mock = mocker.patch(TESTED + '.events.get_listener')
-    return call_mock.return_value
+def m_subscribe(mocker):
+    m = mocker.patch(TESTED + '.events.subscribe')
+    return m
 
 
 @pytest.fixture
-async def app(app, mocker, listener_mock):
+async def app(app, mocker, m_subscribe):
     mocker.patch(TESTED + '.CLEANUP_INTERVAL_S', 0.0001)
 
     scheduler.setup(app)
