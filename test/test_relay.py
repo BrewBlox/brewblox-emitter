@@ -7,9 +7,9 @@ import json
 
 import pytest
 from aiohttp.client_exceptions import ClientPayloadError
+from brewblox_service import scheduler
 
 from brewblox_emitter import relay
-from brewblox_service import scheduler
 
 TESTED = relay.__name__
 
@@ -34,7 +34,7 @@ async def test_add_queue(app, client):
 
     await rl._on_event_message(None, 'test', {
         'key': 'testkey',
-        'duration': '10s',
+        'ttl': '10s',
         'data': {'stuff': True},
         'type': 'TestFace',
     })
@@ -56,7 +56,7 @@ async def test_expire(app, client):
     rl = relay.get_relay(app)
     await rl._on_event_message(None, 'test', {
         'key': 'testkey',
-        'duration': '0s',
+        'ttl': '0s',
         'data': {'stuff': True},
         'type': 'TestFace',
     })
@@ -74,7 +74,7 @@ async def test_subscribe(app, client):
 
     await rl._on_event_message(None, 'test', {
         'key': 'testkey',
-        'duration': '10s',
+        'ttl': '10s',
         'data': {'stuff': True},
         'type': 'TestFace',
     })
