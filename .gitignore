@@ -65,9 +65,7 @@ target/
 # pyenv
 .python-version
 .idea/
+.venv/
 
 # pytest
 .pytest_cache/
-
-# Python package files for building Docker
-docker/pkg/*
