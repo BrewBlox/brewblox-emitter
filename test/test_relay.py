@@ -21,7 +21,7 @@ def m_subscribe(mocker):
 
 
 @pytest.fixture
-async def app(app, mocker, m_subscribe):
+def app(app, mocker, m_subscribe):
     mocker.patch(TESTED + '.CLEANUP_INTERVAL_S', 0.0001)
 
     scheduler.setup(app)
